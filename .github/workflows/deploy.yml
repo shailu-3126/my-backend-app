@@ -1,4 +1,4 @@
-name: CI build and deploy to Cloud Run
+name: CI: build & deploy to Cloud Run
 
 on:
   push:
@@ -8,30 +8,34 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v1
         with:
-          project_id: shailaja-477403
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Configure Docker for GCR
-        run: gcloud auth configure-docker --quiet
+        run: |
+          gcloud auth configure-docker --quiet
 
       - name: Build & Push Container
         run: |
+          # build from repo root (assumes Dockerfile at repo root)
           docker build -t gcr.io/shailaja-477403/my-backend-service:latest .
           docker push gcr.io/shailaja-477403/my-backend-service:latest
 
-      - name: Install Terraform (user-local)
+      - name: Install Terraform
         run: |
           mkdir -p $HOME/bin
-          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o tf.zip
-          unzip -o tf.zip -d $HOME/bin
+          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o /tmp/tf.zip
+          unzip -o /tmp/tf.zip -d $HOME/bin
           echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Terraform Init & Apply
