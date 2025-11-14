@@ -1,3 +1,13 @@
+cd ~/MY-BACKEND-APP || { echo "Repo folder not found at ~/MY-BACKEND-APP"; exit 1; }
+
+# backup existing workflow file
+mkdir -p .github/workflows
+if [ -f .github/workflows/main.yml ]; then
+  cp -v .github/workflows/main.yml .github/workflows/main.yml.bak
+fi
+
+# write a valid workflow file (overwrite main.yml)
+cat > .github/workflows/main.yml <<'YML'
 name: CI: build & deploy to Cloud Run
 
 on:
@@ -37,3 +47,11 @@ jobs:
         run: |
           terraform init
           terraform apply -auto-approve
+YML
+
+# commit & push the fixed workflow
+git add .github/workflows/main.yml
+git commit -m "fix: replace broken workflow with valid CI deploy workflow" || echo "No changes to commit"
+git push origin main
+
+echo "Fixed workflow pushed. Open the Actions tab: https://github.com/shailu-3126/my-backend-app/actions"
