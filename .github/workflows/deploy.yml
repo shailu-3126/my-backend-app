@@ -1,4 +1,4 @@
-name: CI: build & deploy to Cloud Run
+name: CI build and deploy to Cloud Run
 
 on:
   push:
@@ -27,11 +27,11 @@ jobs:
           docker build -t gcr.io/shailaja-477403/my-backend-service:latest .
           docker push gcr.io/shailaja-477403/my-backend-service:latest
 
-      - name: Install Terraform (user-local, no sudo)
+      - name: Install Terraform (user-local)
         run: |
           mkdir -p $HOME/bin
-          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o /tmp/tf.zip
-          unzip -o /tmp/tf.zip -d $HOME/bin
+          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o tf.zip
+          unzip -o tf.zip -d $HOME/bin
           echo "$HOME/bin" >> $GITHUB_PATH
 
       - name: Terraform Init & Apply
