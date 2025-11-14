@@ -1,0 +1,35 @@
+name: CI: build & deploy to Cloud Run
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: shailaja-477403
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for gcr
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build & push container
+        run: |
+          docker build -t gcr.io/shailaja-477403/my-backend-service:latest .
+          docker push gcr.io/shailaja-477403/my-backend-service:latest
+
+      - name: Terraform init & apply
+        working-directory: infra
+        run: |
+          sudo apt-get update && sudo apt-get install -y unzip
+          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o /tmp/tf.zip
+          unzip -o /tmp/tf.zip -d /usr/local/bin
+          terraform init
+          terraform apply -auto-approve
