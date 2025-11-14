@@ -1,0 +1,58 @@
+cd ~/MY-BACKEND-APP || { echo "Repo not found at ~/MY-BACKEND-APP"; exit 1; }
+
+# backup any broken workflows
+mkdir -p .github/workflows
+[ -f .github/workflows/main.yml ] && cp -v .github/workflows/main.yml .github/workflows/main.yml.bak || true
+[ -f .github/workflows/deploy.yml ] && cp -v .github/workflows/deploy.yml .github/workflows/deploy.yml.bak || true
+
+# write a CLEAN, VALID workflow file (no extra text)
+cat > .github/workflows/deploy.yml <<'YML'
+name: CI: build & deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: shailaja-477403
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for GCR
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build & Push Container
+        run: |
+          docker build -t gcr.io/shailaja-477403/my-backend-service:latest .
+          docker push gcr.io/shailaja-477403/my-backend-service:latest
+
+      - name: Install Terraform
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          curl -fsSL https://releases.hashicorp.com/terraform/1.6.0/terraform_1.6.0_linux_amd64.zip -o /tmp/tf.zip
+          unzip -o /tmp/tf.zip -d /usr/local/bin
+
+      - name: Terraform Init & Apply
+        working-directory: infra
+        run: |
+          terraform init
+          terraform apply -auto-approve
+YML
+
+# commit & push the cleaned workflow
+git add .github/workflows/deploy.yml
+git commit -m "ci: fix workflow — write clean deploy.yml" || echo "No changes to commit"
+git push origin main || echo "Push failed; check git remote/branch"
+
+echo "Wrote .github/workflows/deploy.yml and pushed to main. Watch Actions: https://github.com/shailu-3126/my-backend-app/actions"
